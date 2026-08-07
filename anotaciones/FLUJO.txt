@@ -1,0 +1,39 @@
+/////////////////////////////
+
+Para obtener el perfil de usuario propietario
+
+GET /users/me
+
+↓
+
+JWT
+
+↓
+
+obtiene userID
+
+↓
+
+FindByID(userID)
+
+↓
+
+FindProfileByUserID(userID)
+
+/////////////////////////////
+
+Para obtener el perfil de algun usuario
+
+GET /users/{id}
+
+↓
+
+id recibido por URL
+
+↓
+
+FindByID(id)
+
+↓
+
+FindProfileByUserID(id)

@@ -1,0 +1,3 @@
+PENDIENTES:
+1. Todo funciona. Hacer endpoints para users/, users/{id} para obtener info de algun usuario, users/me para obter info del usuario logueado.
+2. Mejorar estructura de routes y como se ve en el main.go

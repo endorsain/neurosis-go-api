@@ -1,0 +1,21 @@
+Actúa como un arquitecto de software senior especializado en el lenguaje Go y en el diseño de sistemas distribuidos y escalables. 
+
+Voy a desarrollar un servidor API REST en Go para un proyecto denominado temporalmente "Neurosis". El objetivo principal de la aplicación es el registro y seguimiento del uso del tiempo del usuario (actividades diarias, tiempo de pantalla en móvil/navegador y métricas de entrenamiento físico). La finalidad del sistema es procesar este historial consolidado para ofrecer al usuario una retroalimentación analítica sobre sus hábitos y gestión del tiempo.
+
+Consideraciones técnicas y arquitectura preliminar:
+1. Alcance actual: Diseño de la arquitectura del servidor API REST en Go.
+2. Persistencia: Modelo híbrido. PostgreSQL para datos relacionales/estructurados y una base de datos NoSQL por definir para el almacenamiento, modificación y lectura intensiva del historial de eventos de tiempo.
+3. Escalabilidad: El sistema debe estar preparado para soportar en el futuro la ingesta masiva de eventos provenientes de dispositivos móviles y extensiones de navegador.
+
+Instrucciones para la respuesta:
+No generes código en esta etapa. Realiza una evaluación técnica y conceptual del planteamiento que incluya:
+- Análisis crítico de la idea de negocio y viabilidad técnica general.
+- Evaluación de la arquitectura de almacenamiento propuesta (PostgreSQL + NoSQL), identificando pros, contras y posibles cuellos de botella.
+- Recomendaciones sobre qué motor NoSQL o base de datos de series temporales (Time-Series) se adapta mejor al patrón de lectura/escritura del historial.
+- Estructura conceptual recomendada para el diseño de la API REST y consideraciones de escalabilidad en Go.
+- Riesgos técnicos o desafíos de diseño que deba considerar antes de iniciar la implementación.
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
