@@ -1,3 +1,9 @@
 PENDIENTES:
-1. Todo funciona. Hacer endpoints para users/, users/{id} para obtener info de algun usuario, users/me para obter info del usuario logueado.
-2. Mejorar estructura de routes y como se ve en el main.go
+1. La estructura de errores esta desorganizada. Plantear estructura de errores.
+2. Consultar sobre forma de la arquitectura de proyectos. En anotaciones escribi las dudas.
+3. Crear funcionalidades para auth/. Login, logout, refresh, etc.
+4. Estructura para tokens.
+5. Añadir roles al registro de datos.
+6. Cambiar la forma en la que se crean las tablas en las migraciones.
+7. Usar variables de entorno para conectar con la base de datos y para los datos de los tokens.
+

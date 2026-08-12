@@ -1,0 +1,32 @@
+// nictofilia
+- Juegos interactivos de cartas.
+// neurosis
+- Juegos online con camara web:
+  - Truco.
+  - Ajedrez.
+- Juegos individual para teclear, tambien puede ser online competitivo.
+- Tabla de Schulte para mejorar la concentracion.
+- Juegos de memoria.
+- Juego de encontrar la salida a laberintos.
+- Juego de ecuaciones matematicas. Dos opciones, resolver ecuaciones o crear ecuaciones para que otros las resuelvan.
+- Juegos para calculo mental rapido(Flash Anzan).
+- Juego para lectura. Se muestra un texto en un tiempo determinado y se lee. Puede variar pero se puede pedir una explicacion del texto o un resumen y esto lo califica la IA. O se puede pedir que copie el texto tal cual se mostro.
+/////////////////////////////////////////////
+Segun la ia
+
+Juegos de Cálculo y Agilidad Mental
+- Calculum (o Mental Math Rush): Variación directa del cálculo rápido donde van cayendo números o problemas matemáticos sencillos ($8 + 5$, $12 \times 4$) a velocidad constante y debes resolverlos antes de que toquen el fondo de la pantalla.
+- Prodigy / King of Math: Juegos estructurados como un RPG o tablero de preguntas donde para avanzar o derrotar enemigos debes resolver operaciones matemáticas en el menor tiempo posible.
+- Math 24 (El juego del 24): Te dan 4 números (por ejemplo: 3, 8, 2, 1) y debes combinarlos usando suma, resta, multiplicación o división para obtener exactamente 24 tan rápido como puedas.
+
+Juegos de Memoria y Atención (Similares a Schulte)
+- N-Back (Dual N-Back): Considerado uno de los pocos ejercicios con evidencia científica para mejorar la memoria de trabajo y la concentración. Consiste en recordar si la posición de un cuadro o un sonido actual coincide con el que apareció N pasos atrás (1 paso atrás, 2 pasos atrás, etc.).
+- Test de Stroop: Aparecen palabras que nombran colores (rojo, azul, verde), pero impresas en un color distinto al significado (por ejemplo, la palabra "AZUL" escrita con tinta roja). El reto es decir el color de la tinta ignorando el texto, ejercitando el control inhibitorio del cerebro.
+- Matrix Memory (Memoria de Matriz): Se enciende un patrón de celdas en una cuadrícula durante medio segundo y debes recordarlas y marcarlas de memoria inmediatamente después.
+
+Aplicaciones que los agrupan
+Si buscas entrenar en tu teléfono o computadora, existen plataformas que recopilan estos ejercicios en rutinas diarias:
+- Lumosity, Elevate y Peak: Tienen minijuegos específicos de velocidad de procesamiento, cálculo tipo Flash Anzan y visión periférica.
+- Brain Age (Entrenamiento Cerebral del Dr. Kawashima): El clásico juego de Nintendo que popularizó el test de "edad mental" mediante operaciones simples a máxima velocidad.
+/////////////////////////////////////////////
+

@@ -1,72 +1,85 @@
 package main
 
 import (
-	"database/sql"
-	"fmt"
+	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
-	authHandlers "github.com/endorsain/neurosis-go-api/internal/auth/handlers"
-	authUsecases "github.com/endorsain/neurosis-go-api/internal/auth/usecases"
-	usersDomain "github.com/endorsain/neurosis-go-api/internal/users"
-	usersHandlers "github.com/endorsain/neurosis-go-api/internal/users/handlers"
-	usersUsecases "github.com/endorsain/neurosis-go-api/internal/users/usecases"
-	"github.com/go-chi/chi/v5"
-	_ "github.com/lib/pq"
+	authModule "github.com/endorsain/neurosis-go-api/internal/auth/module"
+	"github.com/endorsain/neurosis-go-api/internal/config"
+	"github.com/endorsain/neurosis-go-api/internal/infrastructure/postgres"
+	httptransport "github.com/endorsain/neurosis-go-api/internal/transport/http"
+	usersModule "github.com/endorsain/neurosis-go-api/internal/users/module"
 )
 
 func main() {
-	dsn := databaseURLFromEnv()
+	logger := log.New(os.Stdout, "", log.LstdFlags)
+	cfg := config.Load()
 
-	db, err := sql.Open("postgres", dsn)
+	logger.Printf(
+		"configuration loaded (app=%s env=%s server=%s db_host=%s db_port=%s db_name=%s db_user=%s db_sslmode=%s)",
+		cfg.Application.Name,
+		cfg.Application.Environment,
+		cfg.Server.Address(),
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.Name,
+		cfg.Database.User,
+		cfg.Database.SSLMode,
+	)
+
+	pgClient, err := postgres.New(context.Background(), cfg.Database, logger)
 	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	if err := db.Ping(); err != nil {
-		log.Fatal(err)
+		logger.Printf("failed to connect to PostgreSQL: %v", err)
+		os.Exit(1)
 	}
 
-	userRepository := usersDomain.NewPostgresUserRepository(db)
-	registerUseCase := authUsecases.NewRegisterUserUseCase(userRepository)
-	getCurrentUserUseCase := usersUsecases.NewGetCurrentUserUseCase(userRepository)
-	getUserByIDUseCase := usersUsecases.NewGetUserByIDUseCase(userRepository)
-	listUsersUseCase := usersUsecases.NewListUsersUseCase(userRepository)
+	users := usersModule.New(pgClient.DB())
+	auth := authModule.New(users.UserRepository())
 
-	registerHandler := authHandlers.NewHandler(registerUseCase)
-	getCurrentUserHandler := usersHandlers.NewGetCurrentUserHandler(getCurrentUserUseCase)
-	getUserByIDHandler := usersHandlers.NewGetUserByIDHandler(getUserByIDUseCase)
-	listUsersHandler := usersHandlers.NewListUsersHandler(listUsersUseCase)
+	router := httptransport.NewRouter()
+	auth.RegisterRoutes(router)
+	users.RegisterRoutes(router)
 
-	r := chi.NewRouter()
-	authHandlers.RegisterRoutes(r, registerHandler)
-	usersHandlers.RegisterRoutes(r, getCurrentUserHandler, getUserByIDHandler, listUsersHandler)
+	server := httptransport.NewServer(cfg.Server, router)
 
-	if err := http.ListenAndServe(":8080", r); err != nil {
-		log.Fatal(err)
+	logger.Println("starting server")
+	logger.Printf("HTTP server starting on %s", server.Address())
+
+	serverErrCh := make(chan error, 1)
+	go func() {
+		err := server.Start()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErrCh <- err
+			return
+		}
+		close(serverErrCh)
+	}()
+
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case err := <-serverErrCh:
+		if err != nil {
+			logger.Printf("HTTP server stopped with error: %v", err)
+		}
+	case sig := <-signalCh:
+		logger.Printf("shutdown signal received: %s", sig.String())
 	}
-}
 
-func databaseURLFromEnv() string {
-	if dsn := os.Getenv("DATABASE_URL"); dsn != "" {
-		return dsn
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.Server.ShutdownTimeout)
+	defer cancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		logger.Printf("HTTP server stopped with error: %v", err)
 	}
 
-	host := getenvOrDefault("DB_HOST", "localhost")
-	port := getenvOrDefault("DB_PORT", "5432")
-	database := getenvOrDefault("DB_NAME", "neurosis")
-	user := getenvOrDefault("DB_USER", "postgres")
-	password := getenvOrDefault("DB_PASSWORD", "postgres")
-	sslmode := getenvOrDefault("DB_SSLMODE", "disable")
-
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s", user, password, host, port, database, sslmode)
-}
-
-func getenvOrDefault(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
+	if err := pgClient.Close(); err != nil {
+		logger.Printf("failed to close PostgreSQL connection: %v", err)
 	}
-	return fallback
 }

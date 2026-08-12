@@ -2,9 +2,10 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
+	"log"
 	"net/http"
 
+	httptransport "github.com/endorsain/neurosis-go-api/internal/transport/http"
 	"github.com/endorsain/neurosis-go-api/internal/users"
 )
 
@@ -20,6 +21,7 @@ func NewGetCurrentUserHandler(useCase GetCurrentUserUseCase) *GetCurrentUserHand
 	return &GetCurrentUserHandler{useCase: useCase}
 }
 
+// TODO: Esta mal el id deberia llegar de el contexto, gracias a un middleware que valide el accesst_token.
 func (h *GetCurrentUserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("id")
 	if userID == "" {
@@ -28,19 +30,10 @@ func (h *GetCurrentUserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Re
 
 	result, err := h.useCase.Execute(r.Context(), userID)
 	if err != nil {
-		h.writeJSONError(w, http.StatusInternalServerError, "internal server error")
+		log.Printf("get current user failed: %v", err)
+		httptransport.WriteError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
-	h.writeJSON(w, http.StatusOK, result)
-}
-
-func (h *GetCurrentUserHandler) writeJSON(w http.ResponseWriter, status int, payload interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(payload)
-}
-
-func (h *GetCurrentUserHandler) writeJSONError(w http.ResponseWriter, status int, message string) {
-	h.writeJSON(w, status, map[string]string{"error": message})
+	httptransport.WriteJSON(w, http.StatusOK, result)
 }

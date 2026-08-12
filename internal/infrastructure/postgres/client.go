@@ -1,0 +1,51 @@
+package postgres
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/endorsain/neurosis-go-api/internal/config"
+	_ "github.com/lib/pq"
+)
+
+type Client struct {
+	db *sql.DB
+}
+
+func New(ctx context.Context, cfg config.DatabaseConfig, logger *log.Logger) (*Client, error) {
+	logger.Println("connecting to PostgreSQL")
+
+	db, err := sql.Open("postgres", cfg.DSN())
+	if err != nil {
+		logger.Printf("failed to connect to PostgreSQL: %v", err)
+		return nil, fmt.Errorf("open postgres connection: %w", err)
+	}
+
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxIdleTime(5 * time.Minute)
+	db.SetConnMaxLifetime(30 * time.Minute)
+
+	if err := db.PingContext(ctx); err != nil {
+		_ = db.Close()
+		logger.Printf("failed to connect to PostgreSQL: %v", err)
+		return nil, fmt.Errorf("ping postgres connection: %w", err)
+	}
+
+	logger.Println("PostgreSQL connection established")
+	return &Client{db: db}, nil
+}
+
+func (c *Client) DB() *sql.DB {
+	return c.db
+}
+
+func (c *Client) Close() error {
+	if c == nil || c.db == nil {
+		return nil
+	}
+	return c.db.Close()
+}
