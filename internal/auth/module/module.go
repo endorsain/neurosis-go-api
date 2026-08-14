@@ -15,6 +15,7 @@ type Module struct {
 	registerHandler *handlers.RegisterHandler
 	loginHandler    *handlers.LoginHandler
 	refreshHandler  *handlers.RefreshHandler
+	logoutHandler   *handlers.LogoutHandler
 }
 
 func New(db *sql.DB, userRepository users.UserRepository, authConfig config.AuthConfig) (*Module, error) {
@@ -26,14 +27,16 @@ func New(db *sql.DB, userRepository users.UserRepository, authConfig config.Auth
 	}
 	loginUseCase := usecases.NewLoginUseCase(authRepository, tokenService)
 	refreshTokenUseCase := usecases.NewRefreshTokenUseCase(authRepository, tokenService)
+	logoutUseCase := usecases.NewLogoutUseCase(authRepository)
 
 	return &Module{
 		registerHandler: handlers.NewHandler(registerUseCase),
 		loginHandler:    handlers.NewLoginHandler(loginUseCase, authConfig.RefreshCookie),
 		refreshHandler:  handlers.NewRefreshHandler(refreshTokenUseCase, authConfig.RefreshCookie),
+		logoutHandler:   handlers.NewLogoutHandler(logoutUseCase, authConfig.RefreshCookie),
 	}, nil
 }
 
 func (m *Module) RegisterRoutes(r chi.Router) {
-	handlers.RegisterRoutes(r, m.registerHandler, m.loginHandler, m.refreshHandler)
+	handlers.RegisterRoutes(r, m.registerHandler, m.loginHandler, m.refreshHandler, m.logoutHandler)
 }

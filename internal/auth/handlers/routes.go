@@ -4,8 +4,9 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func RegisterRoutes(r chi.Router, registerHandler *RegisterHandler, loginHandler *LoginHandler, refreshHandler *RefreshHandler) {
+func RegisterRoutes(r chi.Router, registerHandler *RegisterHandler, loginHandler *LoginHandler, refreshHandler *RefreshHandler, logoutHandler *LogoutHandler) {
 	r.Post("/auth/register", registerHandler.RegisterUser)
 	r.Post("/auth/login", loginHandler.Login)
 	r.Post("/auth/refresh", refreshHandler.Refresh)
+	r.Post("/auth/logout", logoutHandler.Logout)
 }

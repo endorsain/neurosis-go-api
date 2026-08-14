@@ -13,6 +13,7 @@ type Repository interface {
 	SaveRefreshToken(ctx context.Context, token RefreshToken) error
 	FindRefreshToken(ctx context.Context, tokenHash string) (RefreshTokenRecord, error)
 	RotateRefreshToken(ctx context.Context, previousTokenID int64, token RefreshToken) error
+	RevokeRefreshToken(ctx context.Context, tokenHash string) error
 }
 
 type RefreshToken struct {

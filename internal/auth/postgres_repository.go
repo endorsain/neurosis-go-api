@@ -157,3 +157,18 @@ func (r *PostgresRepository) RotateRefreshToken(ctx context.Context, previousTok
 
 	return nil
 }
+
+func (r *PostgresRepository) RevokeRefreshToken(ctx context.Context, tokenHash string) error {
+	const query = `
+		UPDATE refresh_tokens
+		SET revoked = TRUE
+		WHERE token = $1
+		  AND revoked = FALSE
+	`
+
+	if _, err := r.db.ExecContext(ctx, query, tokenHash); err != nil {
+		return fmt.Errorf("revoke refresh token: %w", err)
+	}
+
+	return nil
+}
