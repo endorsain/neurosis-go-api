@@ -39,7 +39,12 @@ func main() {
 	}
 
 	users := usersModule.New(pgClient.DB())
-	auth := authModule.New(users.UserRepository())
+	auth, err := authModule.New(pgClient.DB(), users.UserRepository(), cfg.Auth)
+	if err != nil {
+		logger.Printf("failed to initialize auth module: %v", err)
+		_ = pgClient.Close()
+		os.Exit(1)
+	}
 
 	router := httptransport.NewRouter()
 	auth.RegisterRoutes(router)

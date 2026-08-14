@@ -3,13 +3,18 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
 	Application ApplicationConfig
 	Database    DatabaseConfig
 	Server      ServerConfig
+	Auth        AuthConfig
 }
 
 type ApplicationConfig struct {
@@ -36,7 +41,35 @@ type ServerConfig struct {
 	ShutdownTimeout time.Duration
 }
 
+type AuthConfig struct {
+	JWT           JWTConfig
+	RefreshToken  RefreshTokenConfig
+	RefreshCookie RefreshCookieConfig
+}
+
+type JWTConfig struct {
+	Secret   string
+	Issuer   string
+	Audience string
+	TTL      time.Duration
+}
+
+type RefreshTokenConfig struct {
+	TTL time.Duration
+}
+
+type RefreshCookieConfig struct {
+	Name     string
+	Path     string
+	Domain   string
+	Secure   bool
+	HTTPOnly bool
+	SameSite string
+}
+
 func Load() Config {
+	_ = godotenv.Load()
+
 	return Config{
 		Application: ApplicationConfig{
 			Name:        getenvOrDefault("APP_NAME", "neurosis-go-api"),
@@ -58,6 +91,25 @@ func Load() Config {
 			WriteTimeout:    durationOrDefault("SERVER_WRITE_TIMEOUT", 15*time.Second),
 			IdleTimeout:     durationOrDefault("SERVER_IDLE_TIMEOUT", 60*time.Second),
 			ShutdownTimeout: durationOrDefault("SERVER_SHUTDOWN_TIMEOUT", 10*time.Second),
+		},
+		Auth: AuthConfig{
+			JWT: JWTConfig{
+				Secret:   os.Getenv("JWT_SECRET"),
+				Issuer:   getenvOrDefault("JWT_ISSUER", "neurosis-go-api"),
+				Audience: getenvOrDefault("JWT_AUDIENCE", "neurosis-api"),
+				TTL:      durationOrDefault("JWT_TTL", 15*time.Minute),
+			},
+			RefreshToken: RefreshTokenConfig{
+				TTL: durationOrDefault("REFRESH_TOKEN_TTL", 30*24*time.Hour),
+			},
+			RefreshCookie: RefreshCookieConfig{
+				Name:     getenvOrDefault("REFRESH_COOKIE_NAME", "refresh_token"),
+				Path:     getenvOrDefault("REFRESH_COOKIE_PATH", "/auth"),
+				Domain:   os.Getenv("REFRESH_COOKIE_DOMAIN"),
+				Secure:   boolOrDefault("REFRESH_COOKIE_SECURE", false),
+				HTTPOnly: boolOrDefault("REFRESH_COOKIE_HTTP_ONLY", true),
+				SameSite: strings.ToLower(getenvOrDefault("REFRESH_COOKIE_SAME_SITE", "lax")),
+			},
 		},
 	}
 }
@@ -91,6 +143,20 @@ func durationOrDefault(key string, fallback time.Duration) time.Duration {
 	}
 
 	parsed, err := time.ParseDuration(value)
+	if err != nil {
+		return fallback
+	}
+
+	return parsed
+}
+
+func boolOrDefault(key string, fallback bool) bool {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+
+	parsed, err := strconv.ParseBool(value)
 	if err != nil {
 		return fallback
 	}
