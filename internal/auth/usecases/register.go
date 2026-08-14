@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/endorsain/neurosis-go-api/internal/users"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type RegisterUserUseCase struct {
@@ -17,32 +18,30 @@ func NewRegisterUserUseCase(userRepository users.UserRepository) *RegisterUserUs
 }
 
 func (uc *RegisterUserUseCase) Execute(ctx context.Context, username, email, password string) (users.User, error) {
-
-	_, err := uc.userRepository.FindByUsername(ctx, username)
-	if err == nil {
-		return users.User{}, users.ErrUsernameTaken
-	}
-	if !errors.Is(err, users.ErrNotFound) {
-		return users.User{}, fmt.Errorf("verify username: %w", err)
+	if username == "" || email == "" || password == "" {
+		return users.User{}, users.ErrInvalidInput
 	}
 
-	_, err = uc.userRepository.FindByEmail(ctx, email)
-	if err == nil {
-		return users.User{}, users.ErrEmailTaken
-	}
-	if !errors.Is(err, users.ErrNotFound) {
-		return users.User{}, fmt.Errorf("verify email: %w", err)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return users.User{}, fmt.Errorf("hash password: %w", err)
 	}
 
 	user := users.User{
 		Username:     username,
 		Email:        email,
-		PasswordHash: password,
+		PasswordHash: string(hashedPassword),
 	}
 	profile := users.UserProfile{}
 
-	createdUser, err := uc.userRepository.Create(ctx, user, profile)
+	createdUser, err := uc.userRepository.CreateDefaultUser(ctx, user, profile)
 	if err != nil {
+		if errors.Is(err, users.ErrUsernameTaken) {
+			return users.User{}, users.ErrUsernameTaken
+		}
+		if errors.Is(err, users.ErrEmailTaken) {
+			return users.User{}, users.ErrEmailTaken
+		}
 		return users.User{}, fmt.Errorf("create user: %w", err)
 	}
 

@@ -39,9 +39,9 @@ func (h *RegisterHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, users.ErrInvalidInput):
-			httptransport.WriteError(w, http.StatusBadRequest, err.Error())
+			httptransport.WriteError(w, http.StatusBadRequest, "invalid user input")
 		case errors.Is(err, users.ErrUsernameTaken), errors.Is(err, users.ErrEmailTaken):
-			httptransport.WriteError(w, http.StatusConflict, err.Error())
+			httptransport.WriteError(w, http.StatusConflict, "username or email already exists")
 		default:
 			log.Printf("register user failed: %v", err)
 			httptransport.WriteError(w, http.StatusInternalServerError, "internal server error")
