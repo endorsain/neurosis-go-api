@@ -84,3 +84,76 @@ func (r *PostgresRepository) SaveRefreshToken(ctx context.Context, token Refresh
 
 	return nil
 }
+
+func (r *PostgresRepository) FindRefreshToken(ctx context.Context, tokenHash string) (RefreshTokenRecord, error) {
+	const query = `
+		SELECT id, user_id, expires_at, revoked
+		FROM refresh_tokens
+		WHERE token = $1
+	`
+
+	var token RefreshTokenRecord
+	err := r.db.QueryRowContext(ctx, query, tokenHash).Scan(
+		&token.ID,
+		&token.UserID,
+		&token.ExpiresAt,
+		&token.Revoked,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return RefreshTokenRecord{}, ErrInvalidRefreshToken
+		}
+		return RefreshTokenRecord{}, fmt.Errorf("find refresh token: %w", err)
+	}
+
+	return token, nil
+}
+
+func (r *PostgresRepository) RotateRefreshToken(ctx context.Context, previousTokenID int64, token RefreshToken) (err error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin refresh token rotation: %w", err)
+	}
+
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	const revokeQuery = `
+		UPDATE refresh_tokens
+		SET revoked = TRUE
+		WHERE id = $1
+		  AND revoked = FALSE
+		  AND expires_at > NOW()
+	`
+
+	result, err := tx.ExecContext(ctx, revokeQuery, previousTokenID)
+	if err != nil {
+		return fmt.Errorf("revoke refresh token: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("check refresh token revocation: %w", err)
+	}
+	if rowsAffected != 1 {
+		return ErrInvalidRefreshToken
+	}
+
+	const insertQuery = `
+		INSERT INTO refresh_tokens (user_id, token, expires_at)
+		VALUES ($1, $2, $3)
+	`
+
+	if _, err = tx.ExecContext(ctx, insertQuery, token.UserID, token.TokenHash, token.ExpiresAt); err != nil {
+		return fmt.Errorf("save rotated refresh token: %w", err)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("commit refresh token rotation: %w", err)
+	}
+
+	return nil
+}

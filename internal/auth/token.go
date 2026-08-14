@@ -83,3 +83,8 @@ func (s *TokenService) GenerateRefreshToken() (value string, hash string, expire
 	expiresAt = time.Now().UTC().Add(s.refreshTokenConfig.TTL)
 	return value, hash, expiresAt, nil
 }
+
+func HashRefreshToken(value string) string {
+	digest := sha256.Sum256([]byte(value))
+	return hex.EncodeToString(digest[:])
+}

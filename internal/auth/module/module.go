@@ -14,6 +14,7 @@ import (
 type Module struct {
 	registerHandler *handlers.RegisterHandler
 	loginHandler    *handlers.LoginHandler
+	refreshHandler  *handlers.RefreshHandler
 }
 
 func New(db *sql.DB, userRepository users.UserRepository, authConfig config.AuthConfig) (*Module, error) {
@@ -24,13 +25,15 @@ func New(db *sql.DB, userRepository users.UserRepository, authConfig config.Auth
 		return nil, err
 	}
 	loginUseCase := usecases.NewLoginUseCase(authRepository, tokenService)
+	refreshTokenUseCase := usecases.NewRefreshTokenUseCase(authRepository, tokenService)
 
 	return &Module{
 		registerHandler: handlers.NewHandler(registerUseCase),
 		loginHandler:    handlers.NewLoginHandler(loginUseCase, authConfig.RefreshCookie),
+		refreshHandler:  handlers.NewRefreshHandler(refreshTokenUseCase, authConfig.RefreshCookie),
 	}, nil
 }
 
 func (m *Module) RegisterRoutes(r chi.Router) {
-	handlers.RegisterRoutes(r, m.registerHandler, m.loginHandler)
+	handlers.RegisterRoutes(r, m.registerHandler, m.loginHandler, m.refreshHandler)
 }
