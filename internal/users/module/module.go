@@ -2,6 +2,7 @@ package module
 
 import (
 	"database/sql"
+	"net/http"
 
 	"github.com/endorsain/neurosis-go-api/internal/users"
 	usersHandlers "github.com/endorsain/neurosis-go-api/internal/users/handlers"
@@ -30,8 +31,8 @@ func New(db *sql.DB) *Module {
 	}
 }
 
-func (m *Module) RegisterRoutes(r chi.Router) {
-	usersHandlers.RegisterRoutes(r, m.getCurrentUserHandler, m.getUserByIDHandler, m.listUsersHandler)
+func (m *Module) RegisterRoutes(r chi.Router, requireAuthentication func(http.Handler) http.Handler) {
+	usersHandlers.RegisterRoutes(r, m.getCurrentUserHandler, m.getUserByIDHandler, m.listUsersHandler, requireAuthentication)
 }
 
 func (m *Module) UserRepository() users.UserRepository {

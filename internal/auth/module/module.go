@@ -2,9 +2,11 @@ package module
 
 import (
 	"database/sql"
+	"net/http"
 
 	"github.com/endorsain/neurosis-go-api/internal/auth"
 	"github.com/endorsain/neurosis-go-api/internal/auth/handlers"
+	"github.com/endorsain/neurosis-go-api/internal/auth/middleware"
 	"github.com/endorsain/neurosis-go-api/internal/auth/usecases"
 	"github.com/endorsain/neurosis-go-api/internal/config"
 	"github.com/endorsain/neurosis-go-api/internal/users"
@@ -16,6 +18,7 @@ type Module struct {
 	loginHandler    *handlers.LoginHandler
 	refreshHandler  *handlers.RefreshHandler
 	logoutHandler   *handlers.LogoutHandler
+	authentication  *middleware.Authentication
 }
 
 func New(db *sql.DB, userRepository users.UserRepository, authConfig config.AuthConfig) (*Module, error) {
@@ -34,9 +37,14 @@ func New(db *sql.DB, userRepository users.UserRepository, authConfig config.Auth
 		loginHandler:    handlers.NewLoginHandler(loginUseCase, authConfig.RefreshCookie),
 		refreshHandler:  handlers.NewRefreshHandler(refreshTokenUseCase, authConfig.RefreshCookie),
 		logoutHandler:   handlers.NewLogoutHandler(logoutUseCase, authConfig.RefreshCookie),
+		authentication:  middleware.NewAuthentication(tokenService),
 	}, nil
 }
 
 func (m *Module) RegisterRoutes(r chi.Router) {
 	handlers.RegisterRoutes(r, m.registerHandler, m.loginHandler, m.refreshHandler, m.logoutHandler)
+}
+
+func (m *Module) RequireAuthentication(next http.Handler) http.Handler {
+	return m.authentication.RequireAuthentication(next)
 }

@@ -5,8 +5,10 @@ import (
 )
 
 func RegisterRoutes(r chi.Router, registerHandler *RegisterHandler, loginHandler *LoginHandler, refreshHandler *RefreshHandler, logoutHandler *LogoutHandler) {
-	r.Post("/auth/register", registerHandler.RegisterUser)
-	r.Post("/auth/login", loginHandler.Login)
-	r.Post("/auth/refresh", refreshHandler.Refresh)
-	r.Post("/auth/logout", logoutHandler.Logout)
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/register", registerHandler.RegisterUser)
+		r.Post("/login", loginHandler.Login)
+		r.Post("/refresh", refreshHandler.Refresh)
+		r.Post("/logout", logoutHandler.Logout)
+	})
 }

@@ -48,7 +48,7 @@ func main() {
 
 	router := httptransport.NewRouter()
 	auth.RegisterRoutes(router)
-	users.RegisterRoutes(router)
+	users.RegisterRoutes(router, auth.RequireAuthentication)
 
 	server := httptransport.NewServer(cfg.Server, router)
 

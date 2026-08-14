@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	authmiddleware "github.com/endorsain/neurosis-go-api/internal/auth/middleware"
 	httptransport "github.com/endorsain/neurosis-go-api/internal/transport/http"
 	"github.com/endorsain/neurosis-go-api/internal/users"
 )
@@ -21,11 +22,11 @@ func NewGetCurrentUserHandler(useCase GetCurrentUserUseCase) *GetCurrentUserHand
 	return &GetCurrentUserHandler{useCase: useCase}
 }
 
-// TODO: Esta mal el id deberia llegar de el contexto, gracias a un middleware que valide el accesst_token.
 func (h *GetCurrentUserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
-	userID := r.URL.Query().Get("id")
-	if userID == "" {
-		userID = "current-user"
+	userID, ok := authmiddleware.UserIDFromContext(r.Context())
+	if !ok {
+		httptransport.WriteError(w, http.StatusUnauthorized, "unauthorized")
+		return
 	}
 
 	result, err := h.useCase.Execute(r.Context(), userID)
