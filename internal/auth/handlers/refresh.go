@@ -3,7 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
-	"log"
+	"fmt"
 	"net/http"
 
 	authDomain "github.com/endorsain/neurosis-go-api/internal/auth"
@@ -29,31 +29,21 @@ func NewRefreshHandler(useCase RefreshTokenUseCase, cookieConfig config.RefreshC
 	return &RefreshHandler{useCase: useCase, cookieConfig: cookieConfig}
 }
 
-func (h *RefreshHandler) Refresh(w http.ResponseWriter, r *http.Request) {
+func (h *RefreshHandler) Refresh(w http.ResponseWriter, r *http.Request) error {
 	cookie, err := r.Cookie(h.cookieConfig.Name)
 	if err != nil {
 		if errors.Is(err, http.ErrNoCookie) {
-			httptransport.WriteError(w, http.StatusUnauthorized, "invalid refresh token")
-			return
+			return authDomain.ErrInvalidRefreshToken
 		}
-
-		log.Printf("read refresh token cookie failed: %v", err)
-		httptransport.WriteError(w, http.StatusInternalServerError, "internal server error")
-		return
+		return fmt.Errorf("read refresh token cookie: %w", err)
 	}
 
 	result, err := h.useCase.Execute(r.Context(), cookie.Value)
 	if err != nil {
-		if errors.Is(err, authDomain.ErrInvalidRefreshToken) {
-			httptransport.WriteError(w, http.StatusUnauthorized, "invalid refresh token")
-			return
-		}
-
-		log.Printf("refresh token failed: %v", err)
-		httptransport.WriteError(w, http.StatusInternalServerError, "internal server error")
-		return
+		return fmt.Errorf("refresh token: %w", err)
 	}
 
 	httptransport.SetRefreshTokenCookie(w, result.RefreshToken, result.RefreshExpiresAt, h.cookieConfig)
 	httptransport.WriteJSON(w, http.StatusOK, refreshResponse{AccessToken: result.AccessToken})
+	return nil
 }

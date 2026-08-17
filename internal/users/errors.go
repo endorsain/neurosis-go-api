@@ -1,10 +1,14 @@
 package users
 
-import "errors"
+import (
+	"net/http"
+
+	apperrors "github.com/endorsain/neurosis-go-api/internal/errors"
+)
 
 var (
-	ErrNotFound      = errors.New("user not found")
-	ErrInvalidInput  = errors.New("invalid user input")
-	ErrUsernameTaken = errors.New("username already exists")
-	ErrEmailTaken    = errors.New("email already exists")
+	ErrNotFound      = apperrors.New("USER_NOT_FOUND", "user not found", http.StatusNotFound)
+	ErrInvalidInput  = apperrors.New("INVALID_USER_INPUT", "invalid user input", http.StatusBadRequest)
+	ErrUsernameTaken = apperrors.New("USERNAME_ALREADY_EXISTS", "username already exists", http.StatusConflict)
+	ErrEmailTaken    = apperrors.New("EMAIL_ALREADY_EXISTS", "email already exists", http.StatusConflict)
 )

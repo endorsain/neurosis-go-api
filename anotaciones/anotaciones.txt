@@ -1,107 +1,30 @@
-Actúa como un arquitecto de software senior especializado en el lenguaje Go y en el diseño de sistemas distribuidos y escalables. 
+Asi es como quedo la estructura final relevante:
 
-Voy a desarrollar un servidor API REST en Go para un proyecto denominado temporalmente "Neurosis". El objetivo principal de la aplicación es el registro y seguimiento del uso del tiempo del usuario (actividades diarias, tiempo de pantalla en móvil/navegador y métricas de entrenamiento físico). La finalidad del sistema es procesar este historial consolidado para ofrecer al usuario una retroalimentación analítica sobre sus hábitos y gestión del tiempo.
+internal/
+├── errors/                    → infraestructura común (AppError, Code, Envelope, Response/Write)
+│   ├── error.go
+│   └── http.go
+├── transport/http/
+│   ├── json.go                → WriteJSON (aún usado por handlers en éxito)
+│   ├── cookies.go
+│   ├── router.go              → NewRouter, Handle, SetErrorLogger
+│   ├── server.go
+│   └── middleware/
+│       └── errors.go          → clasifica, logea (slog), responde HTTP
+├── logging/
+│   └── logging.go             → construye *slog.Logger desde config
+├── auth/
+│   ├── errors.go               → ErrInvalidCredentials, ErrInvalidRefreshToken
+│   ├── repository.go / postgres_repository.go   → sin net/http
+│   ├── usecases/*.go           → sin net/http
+│   ├── handlers/*.go           → retornan error, sin switch
+│   └── middleware/             → autenticación/autorización JWT
+└── users/
+    ├── errors.go                → ErrNotFound, ErrInvalidInput, ErrUsernameTaken, ErrEmailTaken
+    ├── repository.go / postgres_repository.go   → sin net/http
+    ├── usecases/*.go            → sin net/http
+    └── handlers/*.go            → retornan error, sin switch
 
-Consideraciones técnicas y arquitectura preliminar:
-1. Alcance actual: Diseño de la arquitectura del servidor API REST en Go.
-2. Persistencia: Modelo híbrido. PostgreSQL para datos relacionales/estructurados y una base de datos NoSQL por definir para el almacenamiento, modificación y lectura intensiva del historial de eventos de tiempo.
-3. Escalabilidad: El sistema debe estar preparado para soportar en el futuro la ingesta masiva de eventos provenientes de dispositivos móviles y extensiones de navegador.
-
-Instrucciones para la respuesta:
-No generes código en esta etapa. Realiza una evaluación técnica y conceptual del planteamiento que incluya:
-- Análisis crítico de la idea de negocio y viabilidad técnica general.
-- Evaluación de la arquitectura de almacenamiento propuesta (PostgreSQL + NoSQL), identificando pros, contras y posibles cuellos de botella.
-- Recomendaciones sobre qué motor NoSQL o base de datos de series temporales (Time-Series) se adapta mejor al patrón de lectura/escritura del historial.
-- Estructura conceptual recomendada para el diseño de la API REST y consideraciones de escalabilidad en Go.
-- Riesgos técnicos o desafíos de diseño que deba considerar antes de iniciar la implementación.
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-- Es normal que los casos de uso solo utilicen solo una funcion del repositorio? Ej:
-package usecases
-
-import (
-	"context"
-
-	"github.com/endorsain/neurosis-go-api/internal/users"
-)
-
-type GetUserByIDUseCase struct {
-	userRepository users.UserRepository
-}
-
-func NewGetUserByIDUseCase(userRepository users.UserRepository) *GetUserByIDUseCase {
-	return &GetUserByIDUseCase{userRepository: userRepository}
-}
-
-func (uc *GetUserByIDUseCase) Execute(ctx context.Context, id string) (users.UserWithProfile, error) {
-	return uc.userRepository.FindByID(ctx, id)
-}
-  
-Si esto es normal y es lo mejor que se puede hacer, entonces es mejor tener todo dentro de un solo archivo.
-
-- Con respecto a lo handlers, tambien utilizan un caso de uso, ej:
-
-type GetCurrentUserUseCase interface {
-	Execute(ctx context.Context, id string) (users.UserWithProfile, error)
-}
-
-type GetCurrentUserHandler struct {
-	useCase GetCurrentUserUseCase
-}
-
-func NewGetCurrentUserHandler(useCase GetCurrentUserUseCase) *GetCurrentUserHandler {
-	return &GetCurrentUserHandler{useCase: useCase}
-}
-
-func (h *GetCurrentUserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
-	userID := r.URL.Query().Get("id")
-	if userID == "" {
-		userID = "current-user"
-	}
-
-	result, err := h.useCase.Execute(r.Context(), userID)
-	if err != nil {
-		h.writeJSONError(w, http.StatusInternalServerError, "internal server error")
-		return
-	}
-
-	h.writeJSON(w, http.StatusOK, result)
-}
-Luego estos handlers se acumulan en main.go y esto queda asi:
-
-func main() {
-	dsn := databaseURLFromEnv()
-
-	db, err := sql.Open("postgres", dsn)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	if err := db.Ping(); err != nil {
-		log.Fatal(err)
-	}
-
-	userRepository := usersDomain.NewPostgresUserRepository(db)
-	registerUseCase := authUsecases.NewRegisterUserUseCase(userRepository)
-	getCurrentUserUseCase := usersUsecases.NewGetCurrentUserUseCase(userRepository)
-	getUserByIDUseCase := usersUsecases.NewGetUserByIDUseCase(userRepository)
-	listUsersUseCase := usersUsecases.NewListUsersUseCase(userRepository)
-
-	registerHandler := authHandlers.NewHandler(registerUseCase)
-	getCurrentUserHandler := usersHandlers.NewGetCurrentUserHandler(getCurrentUserUseCase)
-	getUserByIDHandler := usersHandlers.NewGetUserByIDHandler(getUserByIDUseCase)
-	listUsersHandler := usersHandlers.NewListUsersHandler(listUsersUseCase)
-
-	r := chi.NewRouter()
-	authHandlers.RegisterRoutes(r, registerHandler)
-	usersHandlers.RegisterRoutes(r, getCurrentUserHandler, getUserByIDHandler, listUsersHandler)
-
-	if err := http.ListenAndServe(":8080", r); err != nil {
-		log.Fatal(err)
-	}
-}
-
-Que pasa cuando añada mas funcionalidades? Esto va a ser gigante, es normal o hay otra salida para esto?
-
+Recomendas seguir con el CORS? Me parece algo fundamental para tener. 
+El cliente por ahora es Postman, pero en el futuro lo voy a desarrollar con Vite y lo voy a alojar con vercel(para el servidor voy a utilizar otra plataforma). En el CORS tambien influyen las bases de datos?
+Tengo entendido que el CORS lleva una configuracion con mis especificaciones. Teniendo en cuenta toda la estructura que tenemos, donde pondrias cada cosa? Es recomendable usar variables de entorno(.env)?

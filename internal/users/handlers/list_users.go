@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"net/http"
 
 	httptransport "github.com/endorsain/neurosis-go-api/internal/transport/http"
@@ -21,13 +21,12 @@ func NewListUsersHandler(useCase ListUsersUseCase) *ListUsersHandler {
 	return &ListUsersHandler{useCase: useCase}
 }
 
-func (h *ListUsersHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
+func (h *ListUsersHandler) ListUsers(w http.ResponseWriter, r *http.Request) error {
 	result, err := h.useCase.Execute(r.Context())
 	if err != nil {
-		log.Printf("list users failed: %v", err)
-		httptransport.WriteError(w, http.StatusInternalServerError, "internal server error")
-		return
+		return fmt.Errorf("list users: %w", err)
 	}
 
 	httptransport.WriteJSON(w, http.StatusOK, result)
+	return nil
 }

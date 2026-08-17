@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/endorsain/neurosis-go-api/internal/config"
@@ -15,12 +15,12 @@ type Client struct {
 	db *sql.DB
 }
 
-func New(ctx context.Context, cfg config.DatabaseConfig, logger *log.Logger) (*Client, error) {
-	logger.Println("connecting to PostgreSQL")
+func New(ctx context.Context, cfg config.DatabaseConfig, logger *slog.Logger) (*Client, error) {
+	logger.Info("connecting to PostgreSQL")
 
 	db, err := sql.Open("postgres", cfg.DSN())
 	if err != nil {
-		logger.Printf("failed to connect to PostgreSQL: %v", err)
+		logger.Error("failed to connect to PostgreSQL", "error", err.Error())
 		return nil, fmt.Errorf("open postgres connection: %w", err)
 	}
 
@@ -31,11 +31,11 @@ func New(ctx context.Context, cfg config.DatabaseConfig, logger *log.Logger) (*C
 
 	if err := db.PingContext(ctx); err != nil {
 		_ = db.Close()
-		logger.Printf("failed to connect to PostgreSQL: %v", err)
+		logger.Error("failed to connect to PostgreSQL", "error", err.Error())
 		return nil, fmt.Errorf("ping postgres connection: %w", err)
 	}
 
-	logger.Println("PostgreSQL connection established")
+	logger.Info("PostgreSQL connection established")
 	return &Client{db: db}, nil
 }
 

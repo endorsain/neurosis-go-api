@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,39 +11,41 @@ import (
 	authModule "github.com/endorsain/neurosis-go-api/internal/auth/module"
 	"github.com/endorsain/neurosis-go-api/internal/config"
 	"github.com/endorsain/neurosis-go-api/internal/infrastructure/postgres"
+	"github.com/endorsain/neurosis-go-api/internal/logging"
 	httptransport "github.com/endorsain/neurosis-go-api/internal/transport/http"
 	usersModule "github.com/endorsain/neurosis-go-api/internal/users/module"
 )
 
 func main() {
-	logger := log.New(os.Stdout, "", log.LstdFlags)
 	cfg := config.Load()
+	logger := logging.New(cfg.Logging)
 
-	logger.Printf(
-		"configuration loaded (app=%s env=%s server=%s db_host=%s db_port=%s db_name=%s db_user=%s db_sslmode=%s)",
-		cfg.Application.Name,
-		cfg.Application.Environment,
-		cfg.Server.Address(),
-		cfg.Database.Host,
-		cfg.Database.Port,
-		cfg.Database.Name,
-		cfg.Database.User,
-		cfg.Database.SSLMode,
+	logger.Info("configuration loaded",
+		"app", cfg.Application.Name,
+		"env", cfg.Application.Environment,
+		"server", cfg.Server.Address(),
+		"db_host", cfg.Database.Host,
+		"db_port", cfg.Database.Port,
+		"db_name", cfg.Database.Name,
+		"db_user", cfg.Database.User,
+		"db_sslmode", cfg.Database.SSLMode,
 	)
 
 	pgClient, err := postgres.New(context.Background(), cfg.Database, logger)
 	if err != nil {
-		logger.Printf("failed to connect to PostgreSQL: %v", err)
+		logger.Error("failed to connect to PostgreSQL", "error", err.Error())
 		os.Exit(1)
 	}
 
 	users := usersModule.New(pgClient.DB())
 	auth, err := authModule.New(pgClient.DB(), users.UserRepository(), cfg.Auth)
 	if err != nil {
-		logger.Printf("failed to initialize auth module: %v", err)
+		logger.Error("failed to initialize auth module", "error", err.Error())
 		_ = pgClient.Close()
 		os.Exit(1)
 	}
+
+	httptransport.SetErrorLogger(logger)
 
 	router := httptransport.NewRouter()
 	auth.RegisterRoutes(router)
@@ -52,8 +53,8 @@ func main() {
 
 	server := httptransport.NewServer(cfg.Server, router)
 
-	logger.Println("starting server")
-	logger.Printf("HTTP server starting on %s", server.Address())
+	logger.Info("starting server")
+	logger.Info("HTTP server starting", "address", server.Address())
 
 	serverErrCh := make(chan error, 1)
 	go func() {
@@ -71,20 +72,20 @@ func main() {
 	select {
 	case err := <-serverErrCh:
 		if err != nil {
-			logger.Printf("HTTP server stopped with error: %v", err)
+			logger.Error("HTTP server stopped with error", "error", err.Error())
 		}
 	case sig := <-signalCh:
-		logger.Printf("shutdown signal received: %s", sig.String())
+		logger.Info("shutdown signal received", "signal", sig.String())
 	}
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.Server.ShutdownTimeout)
 	defer cancel()
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		logger.Printf("HTTP server stopped with error: %v", err)
+		logger.Error("HTTP server stopped with error", "error", err.Error())
 	}
 
 	if err := pgClient.Close(); err != nil {
-		logger.Printf("failed to close PostgreSQL connection: %v", err)
+		logger.Error("failed to close PostgreSQL connection", "error", err.Error())
 	}
 }

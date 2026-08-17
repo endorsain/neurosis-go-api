@@ -1,10 +1,14 @@
 PENDIENTES:
 1. La estructura de errores esta desorganizada. Plantear estructura de errores.
 2. Consultar sobre forma de la arquitectura de proyectos. En anotaciones escribi las dudas. ✅
-3. Crear funcionalidades para auth/. Login, logout, refresh, etc.
-4. Estructura para tokens.
-5. Añadir roles al registro de datos.
+3. Crear funcionalidades para auth/. Login, logout, refresh, etc. ✅ ✅ ✅ ✅ ✅
+4. Estructura para tokens. ✅
+5. Añadir roles al registro de datos. ✅
 6. Cambiar la forma en la que se crean las tablas en las migraciones. ✅
-7. Usar variables de entorno para conectar con la base de datos y para los datos de los tokens.
+7. Usar variables de entorno para conectar con la base de datos y para los datos de los tokens. ✅
 8. Empezar creando la "maqueta" para la estructura de subir actividades.
+9. Hacer middleware de roles de usuarios. ✅ 
+10. El endpoint /users/me no utiliza el middleware para obtener el id del usuario logeado extraido del token. Arreglarlo. ✅
+11. Hacer middleware de CORS.
+12. Existe una forma de "centralizar" o "filtrar" los errores de peticion del cliente en JSON? tipo zod en javascript con NestJS. Investigar y aplicar.
 

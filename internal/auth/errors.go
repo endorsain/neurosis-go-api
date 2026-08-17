@@ -1,8 +1,12 @@
 package auth
 
-import "errors"
+import (
+	"net/http"
+
+	apperrors "github.com/endorsain/neurosis-go-api/internal/errors"
+)
 
 var (
-	ErrInvalidCredentials  = errors.New("invalid credentials")
-	ErrInvalidRefreshToken = errors.New("invalid refresh token")
+	ErrInvalidCredentials  = apperrors.New("INVALID_CREDENTIALS", "invalid credentials", http.StatusUnauthorized)
+	ErrInvalidRefreshToken = apperrors.New("INVALID_REFRESH_TOKEN", "invalid refresh token", http.StatusUnauthorized)
 )

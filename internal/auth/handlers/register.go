@@ -3,10 +3,10 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"log"
+	"fmt"
 	"net/http"
 
+	apperrors "github.com/endorsain/neurosis-go-api/internal/errors"
 	httptransport "github.com/endorsain/neurosis-go-api/internal/transport/http"
 	"github.com/endorsain/neurosis-go-api/internal/users"
 )
@@ -23,30 +23,19 @@ func NewHandler(registerUserUseCase RegisterUserUseCase) *RegisterHandler {
 	return &RegisterHandler{usecase: registerUserUseCase}
 }
 
-func (h *RegisterHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+func (h *RegisterHandler) RegisterUser(w http.ResponseWriter, r *http.Request) error {
 	var req users.RegisterUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httptransport.WriteError(w, http.StatusBadRequest, "invalid JSON body")
-		return
+		return apperrors.New(apperrors.CodeInvalidInput, "invalid JSON body", http.StatusBadRequest)
 	}
 
 	if req.Username == "" || req.Email == "" || req.Password == "" {
-		httptransport.WriteError(w, http.StatusBadRequest, "username, email and password are required")
-		return
+		return apperrors.New(apperrors.CodeInvalidInput, "username, email and password are required", http.StatusBadRequest)
 	}
 
 	createdUser, err := h.usecase.Execute(r.Context(), req.Username, req.Email, req.Password)
 	if err != nil {
-		switch {
-		case errors.Is(err, users.ErrInvalidInput):
-			httptransport.WriteError(w, http.StatusBadRequest, "invalid user input")
-		case errors.Is(err, users.ErrUsernameTaken), errors.Is(err, users.ErrEmailTaken):
-			httptransport.WriteError(w, http.StatusConflict, "username or email already exists")
-		default:
-			log.Printf("register user failed: %v", err)
-			httptransport.WriteError(w, http.StatusInternalServerError, "internal server error")
-		}
-		return
+		return fmt.Errorf("register user: %w", err)
 	}
 
 	httptransport.WriteJSON(w, http.StatusCreated, users.UserResponse{
@@ -54,4 +43,5 @@ func (h *RegisterHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		Username: createdUser.Username,
 		Email:    createdUser.Email,
 	})
+	return nil
 }

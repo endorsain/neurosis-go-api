@@ -2,9 +2,10 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"net/http"
 
+	apperrors "github.com/endorsain/neurosis-go-api/internal/errors"
 	httptransport "github.com/endorsain/neurosis-go-api/internal/transport/http"
 	"github.com/endorsain/neurosis-go-api/internal/users"
 	"github.com/go-chi/chi/v5"
@@ -22,19 +23,17 @@ func NewGetUserByIDHandler(useCase GetUserByIDUseCase) *GetUserByIDHandler {
 	return &GetUserByIDHandler{useCase: useCase}
 }
 
-func (h *GetUserByIDHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
+func (h *GetUserByIDHandler) GetUserByID(w http.ResponseWriter, r *http.Request) error {
 	id := chi.URLParam(r, "id")
 	if id == "" {
-		httptransport.WriteError(w, http.StatusBadRequest, "id is required")
-		return
+		return apperrors.New(apperrors.CodeInvalidInput, "id is required", http.StatusBadRequest)
 	}
 
 	result, err := h.useCase.Execute(r.Context(), id)
 	if err != nil {
-		log.Printf("get user by id failed (id=%s): %v", id, err)
-		httptransport.WriteError(w, http.StatusInternalServerError, "internal server error")
-		return
+		return fmt.Errorf("get user by id (id=%s): %w", id, err)
 	}
 
 	httptransport.WriteJSON(w, http.StatusOK, result)
+	return nil
 }

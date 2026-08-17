@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"net/http"
 
 	"github.com/endorsain/neurosis-go-api/internal/config"
@@ -22,20 +22,20 @@ func NewLogoutHandler(useCase LogoutUseCase, cookieConfig config.RefreshCookieCo
 	return &LogoutHandler{useCase: useCase, cookieConfig: cookieConfig}
 }
 
-func (h *LogoutHandler) Logout(w http.ResponseWriter, r *http.Request) {
+// Logout is idempotent: a missing, already revoked or unknown refresh token
+// still results in a successful logout. Only an unexpected failure is
+// reported to the centralized error middleware.
+func (h *LogoutHandler) Logout(w http.ResponseWriter, r *http.Request) error {
 	cookie, err := r.Cookie(h.cookieConfig.Name)
 	if err == nil {
 		if err := h.useCase.Execute(r.Context(), cookie.Value); err != nil {
-			log.Printf("logout failed: %v", err)
-			httptransport.WriteError(w, http.StatusInternalServerError, "internal server error")
-			return
+			return fmt.Errorf("logout: %w", err)
 		}
 	} else if err != http.ErrNoCookie {
-		log.Printf("read refresh token cookie failed: %v", err)
-		httptransport.WriteError(w, http.StatusInternalServerError, "internal server error")
-		return
+		return fmt.Errorf("read refresh token cookie: %w", err)
 	}
 
 	httptransport.ClearRefreshTokenCookie(w, h.cookieConfig)
 	w.WriteHeader(http.StatusNoContent)
+	return nil
 }

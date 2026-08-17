@@ -15,6 +15,7 @@ type Config struct {
 	Database    DatabaseConfig
 	Server      ServerConfig
 	Auth        AuthConfig
+	Logging     LoggingConfig
 }
 
 type ApplicationConfig struct {
@@ -67,6 +68,10 @@ type RefreshCookieConfig struct {
 	SameSite string
 }
 
+type LoggingConfig struct {
+	Level string
+}
+
 func Load() Config {
 	_ = godotenv.Load()
 
@@ -110,6 +115,9 @@ func Load() Config {
 				HTTPOnly: boolOrDefault("REFRESH_COOKIE_HTTP_ONLY", true),
 				SameSite: strings.ToLower(getenvOrDefault("REFRESH_COOKIE_SAME_SITE", "lax")),
 			},
+		},
+		Logging: LoggingConfig{
+			Level: getenvOrDefault("LOG_LEVEL", "info"),
 		},
 	}
 }

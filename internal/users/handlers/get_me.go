@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"net/http"
 
 	authmiddleware "github.com/endorsain/neurosis-go-api/internal/auth/middleware"
+	apperrors "github.com/endorsain/neurosis-go-api/internal/errors"
 	httptransport "github.com/endorsain/neurosis-go-api/internal/transport/http"
 	"github.com/endorsain/neurosis-go-api/internal/users"
 )
@@ -22,19 +23,17 @@ func NewGetCurrentUserHandler(useCase GetCurrentUserUseCase) *GetCurrentUserHand
 	return &GetCurrentUserHandler{useCase: useCase}
 }
 
-func (h *GetCurrentUserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
+func (h *GetCurrentUserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) error {
 	userID, ok := authmiddleware.UserIDFromContext(r.Context())
 	if !ok {
-		httptransport.WriteError(w, http.StatusUnauthorized, "unauthorized")
-		return
+		return apperrors.New(apperrors.CodeUnauthorized, "unauthorized", http.StatusUnauthorized)
 	}
 
 	result, err := h.useCase.Execute(r.Context(), userID)
 	if err != nil {
-		log.Printf("get current user failed: %v", err)
-		httptransport.WriteError(w, http.StatusInternalServerError, "internal server error")
-		return
+		return fmt.Errorf("get current user (id=%s): %w", userID, err)
 	}
 
 	httptransport.WriteJSON(w, http.StatusOK, result)
+	return nil
 }

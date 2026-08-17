@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/lib/pq"
@@ -220,7 +219,6 @@ func (r *PostgresUserRepository) FindByID(ctx context.Context, id string) (UserW
 		&user.Profile.UpdatedAt,
 	)
 	if err != nil {
-		log.Printf("get user by id: %v", err)
 		if errors.Is(err, sql.ErrNoRows) {
 			return UserWithProfile{}, ErrNotFound
 		}

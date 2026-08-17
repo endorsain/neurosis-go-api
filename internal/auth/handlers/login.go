@@ -3,13 +3,12 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"log"
+	"fmt"
 	"net/http"
 
-	authDomain "github.com/endorsain/neurosis-go-api/internal/auth"
 	"github.com/endorsain/neurosis-go-api/internal/auth/usecases"
 	"github.com/endorsain/neurosis-go-api/internal/config"
+	apperrors "github.com/endorsain/neurosis-go-api/internal/errors"
 	httptransport "github.com/endorsain/neurosis-go-api/internal/transport/http"
 )
 
@@ -35,30 +34,22 @@ func NewLoginHandler(useCase LoginUseCase, cookieConfig config.RefreshCookieConf
 	return &LoginHandler{useCase: useCase, cookieConfig: cookieConfig}
 }
 
-func (h *LoginHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *LoginHandler) Login(w http.ResponseWriter, r *http.Request) error {
 	var req loginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httptransport.WriteError(w, http.StatusBadRequest, "invalid JSON body")
-		return
+		return apperrors.New(apperrors.CodeInvalidInput, "invalid JSON body", http.StatusBadRequest)
 	}
 
 	if req.Username == "" || req.Password == "" {
-		httptransport.WriteError(w, http.StatusBadRequest, "username and password are required")
-		return
+		return apperrors.New(apperrors.CodeInvalidInput, "username and password are required", http.StatusBadRequest)
 	}
 
 	result, err := h.useCase.Execute(r.Context(), req.Username, req.Password)
 	if err != nil {
-		if errors.Is(err, authDomain.ErrInvalidCredentials) {
-			httptransport.WriteError(w, http.StatusUnauthorized, "invalid credentials")
-			return
-		}
-
-		log.Printf("login failed: %v", err)
-		httptransport.WriteError(w, http.StatusInternalServerError, "internal server error")
-		return
+		return fmt.Errorf("login: %w", err)
 	}
 
 	httptransport.SetRefreshTokenCookie(w, result.RefreshToken, result.RefreshExpiresAt, h.cookieConfig)
 	httptransport.WriteJSON(w, http.StatusOK, loginResponse{AccessToken: result.AccessToken})
+	return nil
 }
